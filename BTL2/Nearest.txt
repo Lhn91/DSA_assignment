@@ -1,0 +1,69 @@
+double distance(const vector<int>& a, const vector<int>& b) {
+    double dist = 0;
+    for (int i = 0; i < a.size(); i++) {
+        dist += pow(a[i] - b[i], 2);
+    }
+    return sqrt(dist);
+}
+
+void kDTree::nearestNeighbourHelper(kDTreeNode* node, const vector<int>& target, int depth, kDTreeNode*& best, double& bestDist) {
+    if (node == nullptr)
+        return;
+
+    double dist = distance(node->data, target);
+    if (dist < bestDist) {
+        bestDist = dist;
+        best = node;
+    }
+
+    int dim = depth % k;
+    double diff = target[dim] - node->data[dim];
+
+    kDTreeNode* near = diff <= 0 ? node->left : node->right;
+    kDTreeNode* far = diff <= 0 ? node->right : node->left;
+
+    nearestNeighbourHelper(near, target, depth + 1, best, bestDist);
+
+    // Kiểm tra điều kiện trước khi gọi đệ quy
+    if (abs(diff) < bestDist)
+        nearestNeighbourHelper(far, target, depth + 1, best, bestDist);
+}
+
+void kDTree::nearestNeighbour(const vector<int>& target, kDTreeNode*& best) {
+    double bestDist = 1e9; // Sử dụng một giá trị lớn hợp lý thay cho numeric_limits<double>::max()
+    nearestNeighbourHelper(root, target, 0, best, bestDist);
+}
+
+void kDTree::kNearestNeighbourHelper(kDTreeNode* node, const vector<int>& target, int depth, int dim, int k, vector<kDTreeNode*>& bestList, vector<double>& bestDistances) {
+    if (node == nullptr)
+        return;
+    double dist = distance(node->data, target);
+   
+    for (int i = 0; i < k; i++) {
+        if (dist < bestDistances[i]) {
+            bestDistances.insert(bestDistances.begin() + i, dist);
+            bestList.insert(bestList.begin() + i, node);
+            if (bestList.size() > k) {
+                bestList.pop_back();
+                bestDistances.pop_back();
+            }
+            break;
+        }
+    }
+    int axis = depth % dim;
+    double diff = target[axis] - node->data[axis];
+
+    kDTreeNode* near = diff <= 0 ? node->left : node->right;
+    kDTreeNode* far = diff <= 0 ? node->right : node->left;
+
+    kNearestNeighbourHelper(near, target, depth + 1, dim, k, bestList, bestDistances);
+
+    if (abs(diff) < bestDistances[k - 1] || bestList.size() < k)
+        kNearestNeighbourHelper(far, target, depth + 1, dim, k, bestList, bestDistances);
+}
+const double INFINITY_DISTANCE = 1e9;
+
+void kDTree::kNearestNeighbour(const vector<int>& target, int k, vector<kDTreeNode*>& bestList) {
+    vector<double> bestDistances(k, INFINITY_DISTANCE);
+    kNearestNeighbourHelper(root, target, 0, this->k , k, bestList, bestDistances);
+}

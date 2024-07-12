@@ -1,0 +1,91 @@
+void kDTree::nearestNeighbour(const vector<int>& target, kDTreeNode *&best) {
+    double bestDistance = 1e9;
+    nearestNeighbourHelper(root, target, 0, best, bestDistance);
+}
+
+void kDTree::nearestNeighbourHelper(kDTreeNode* node, const vector<int>& target, int depth, kDTreeNode*& best, double& bestDistance) const {
+    if (node == nullptr)
+        return;
+
+    double currentDistance = calculateDistance(node->data, target);
+    if (currentDistance < bestDistance) {
+        best = node;
+        bestDistance = currentDistance;
+    }
+
+    int dim = depth % this->k;
+    bool goLeft = target[dim] < node->data[dim];
+
+    if (goLeft) {
+        nearestNeighbourHelper(node->left, target, depth + 1, best, bestDistance);
+        if (node->right != nullptr && abs(target[dim] - node->data[dim]) <= bestDistance)
+            nearestNeighbourHelper(node->right, target, depth + 1, best, bestDistance);
+    } else {
+        nearestNeighbourHelper(node->right, target, depth + 1, best, bestDistance);
+        if (node->left != nullptr && abs(target[dim] - node->data[dim]) <= bestDistance)
+            nearestNeighbourHelper(node->left, target, depth + 1, best, bestDistance);
+    }
+}
+
+void kDTree::kNearestNeighbour(const vector<int>& target, int k, vector<kDTreeNode*>& bestList) {
+    list<NodeDistance> lst;
+    kNearestNeighbourHelper(root, target, k, 0, lst);
+
+    // Sắp xếp danh sách bằng thuật toán sắp xếp chèn
+    for (auto i = lst.begin(); i != lst.end(); ++i) {
+        auto key = *i;
+        auto j = i;
+        while (j != lst.begin() && (*prev(j)).distance > key.distance) {
+            *j = *prev(j);
+            --j;
+        }
+        *j = key;
+    }
+    int count = 0;
+    for(auto it = lst.begin(); it != lst.end(); ++it) {
+         if (count == k) break;
+        bestList.push_back(it->node);
+        count++;
+    }
+}
+
+void kDTree::kNearestNeighbourHelper(kDTreeNode* node, const vector<int>& target, int k, int depth, list<NodeDistance>& lst) const {
+    if (node == nullptr)
+        return;
+
+    double currentDistance = calculateDistance(node->data, target);
+    lst.push_back({currentDistance, node});
+
+    int dim = depth % this->k;
+    bool goLeft = target[dim] < node->data[dim];
+
+    if (goLeft) {
+        kNearestNeighbourHelper(node->left, target, k, depth + 1, lst);
+        if (node->right != nullptr && abs(target[dim] - node->data[dim]) <= lst.back().distance)
+            kNearestNeighbourHelper(node->right, target, k, depth + 1, lst);
+    } else {
+        kNearestNeighbourHelper(node->right, target, k, depth + 1, lst);
+        if (node->left != nullptr && abs(target[dim] - node->data[dim]) <= lst.back().distance)
+            kNearestNeighbourHelper(node->left, target, k, depth + 1, lst);
+    }
+}
+
+double kDTree::calculateDistance(const vector<int>& p1, const vector<int>& p2) const{
+    double distance = 0.0;
+    for (int i = 0; i < this->k; ++i)
+        distance += pow(p1[i] - p2[i], 2);
+    return sqrt(distance);
+}
+
+
+
+
+
+
+
+HEADER
+
+struct NodeDistance {
+    double distance;
+    kDTreeNode* node;
+};
